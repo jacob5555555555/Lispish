@@ -138,12 +138,14 @@ function getList(list){
 function compile(tokens){
     if (tokens.constructor === Array){
         var first = tokens[0];
+        var rest = tokens.splice(1);
         var macro = jsMacros[first];
         if (macro){
-            return macro(tokens.splice(1));
+            return macro(rest);
             //TODO: do check for if macro has right number of args
         } else {
-            throw new Error("Macro unrecognised: " + first);
+            var compiledRest = rest.map(compile);
+            return "(" + compile(first) + "(" + compiledRest.join(",") + "))";
         }
     } else if (tokens.constructor === Number){
         return String(tokens);
@@ -152,4 +154,10 @@ function compile(tokens){
     } else {
         throw new Error("this shouldn't happen");
     }
+}
+
+function lispish(code){
+    var compiled = compile(parse(tokenize(code)));
+    console.log(compiled);
+    console.log(eval(compiled));
 }
