@@ -92,24 +92,51 @@ var jsMacros = {
                 throw Error("element of list after fn must be tokens");
             }
         })
-        return "(function(" + args.join(",") + "){return " + compile(code, jsMacros) + ";})";
+        return "(function(" + args.join(",") + "){return " + compile(code) + ";})";
     },
     list: function(elements){
         var list = elements.map(function(arg){
-            return compile(arg, jsMacros);
+            return compile(arg);
         });
         return JSON.stringify(list);
     },
-    "+": function(elements){
-        return "(" + elements.join("+") + ")";
+    let: function(elements){
+        assert(elements.length === 2, "let takes two arguments");
+        var varList = getList(elements[0]);
+        var code = elements[1];
+        var letPairs = varList.map(function(element){
+            var list = getList(element);
+            assert(list.length === 2, "each let pair must have 2 elements");
+            return "var " + list[0] + "=" + compile(list[1]) + ";";
+        });
+        return "(function(){" + letPairs.join("") + "return " + compile(code) + ";})()";
+    },
+    "+": makePrefixFromInfixOp("+"),
+    "-": makePrefixFromInfixOp("-"),
+    "*": makePrefixFromInfixOp("*"),
+    "/": makePrefixFromInfixOp("/")
+    
+}
+
+function makePrefixFromInfixOp(op){
+    return function(elements){
+        return "(" + elements.join(op) + ")";
     }
 }
 
-function compile(tokens, jsMacros){
+function assert(boolean, message){
+    if(!boolean){
+        throw new Error(message);
+    }
+}
+
+function getList(list){
+    assert(list[0] === "list", "expected list");
+    return list.splice(1);
+}
+
+function compile(tokens){
     if (tokens.constructor === Array){
-        // var compiledToks = tokens.map(function(token){
-        //     return compile(token, jsMacros);
-        // });
         var first = tokens[0];
         var macro = jsMacros[first];
         if (macro){
@@ -126,20 +153,3 @@ function compile(tokens, jsMacros){
         throw new Error("this shouldn't happen");
     }
 }
-
-// function compile(tokens, jsMacros){
-//     return tokens.map(function(tok){
-//         return compileImpl(tok, jsMacros);
-//     });
-// }
-// function compileImpl(tokens, jsMacros){//runs on single list of tokens
-//     var macro = jsMacros[tokens[0]];
-//     if (!macro){
-//         throw Error("Illegal macro: " + tokens[0]);
-//     } else {
-//         macro.run(tokens.splice(1));
-//     }
-//     return tokens.map(function(tok){
-//         return
-//     })
-// }
